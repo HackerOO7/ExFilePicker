@@ -402,6 +402,8 @@ public class ExFilePickerActivity extends AppCompatActivity implements OnListIte
 
     private void setupOkButtonVisibility() {
         mToolbar.getMenu().findItem(R.id.ok).setVisible(mChoiceType == ExFilePicker.ChoiceType.DIRECTORIES);
+        mToolbar.getMenu().findItem(R.id.new_folder).setVisible(!mIsNewFolderButtonDisabled);
+        mToolbar.getMenu().findItem(R.id.sort).setVisible(!mIsSortButtonDisabled);
     }
 
     @NonNull
