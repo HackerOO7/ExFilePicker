@@ -29,6 +29,7 @@ import java.util.List;
 import ru.bartwell.exfilepicker.ExFilePicker;
 import ru.bartwell.exfilepicker.R;
 import ru.bartwell.exfilepicker.data.ExFilePickerResult;
+import ru.bartwell.exfilepicker.entity.PositionInfo;
 import ru.bartwell.exfilepicker.ui.adapter.FilesListAdapter;
 import ru.bartwell.exfilepicker.ui.callback.OnListItemClickListener;
 import ru.bartwell.exfilepicker.ui.dialog.NewFolderDialog;
@@ -77,6 +78,9 @@ public class ExFilePickerActivity extends AppCompatActivity implements OnListIte
     private boolean mIsMultiChoiceModeEnabled;
     private boolean mUseFirstItemAsUpEnabled;
     private boolean mHideHiddenFiles;
+    private int lastPosition = 0;
+    private int lastOffset = 0;
+    private ArrayList<PositionInfo> mPositionInfos = new ArrayList<>();
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -119,6 +123,10 @@ public class ExFilePickerActivity extends AppCompatActivity implements OnListIte
             } else {
                 File item = mAdapter.getItem(position);
                 if (item.isDirectory()) {
+                    PositionInfo positionInfo = new PositionInfo();
+                    positionInfo.setPosition(lastPosition);
+                    positionInfo.setOffset(lastOffset);
+                    mPositionInfos.add(positionInfo);
                     mCurrentDirectory = new File(mCurrentDirectory, item.getName());
                     readDirectory(mCurrentDirectory);
                 } else {
@@ -233,6 +241,13 @@ public class ExFilePickerActivity extends AppCompatActivity implements OnListIte
     private void readUpDirectory() {
         mCurrentDirectory = mCurrentDirectory.getParentFile();
         readDirectory(mCurrentDirectory);
+        int size = mPositionInfos.size();
+        if (size > 0) {
+            PositionInfo positionInfo = mPositionInfos.get(size - 1);
+            ((LinearLayoutManager) mRecyclerView.getLayoutManager()).scrollToPositionWithOffset
+                    (positionInfo.getPosition(), positionInfo.getOffset());
+            mPositionInfos.remove(size - 1);
+        }
     }
 
     private void readDirectory(@NonNull File directory) {
@@ -382,7 +397,19 @@ public class ExFilePickerActivity extends AppCompatActivity implements OnListIte
 
     private void setupViews() {
         mRecyclerView = (RecyclerView) findViewById(R.id.recycler_view);
-        mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        final LinearLayoutManager layoutManager = new LinearLayoutManager(this);
+        mRecyclerView.setLayoutManager(layoutManager);
+        mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+                View topView = layoutManager.getChildAt(0);
+                if (topView != null) {
+                    lastOffset = topView.getTop();
+                    lastPosition = layoutManager.getPosition(topView);
+                }
+            }
+        });
         mAdapter = new FilesListAdapter();
         mAdapter.setOnListItemClickListener(this);
         mAdapter.setCanChooseOnlyFiles(mChoiceType == ExFilePicker.ChoiceType.FILES);
@@ -424,4 +451,5 @@ public class ExFilePickerActivity extends AppCompatActivity implements OnListIte
         }
         return path;
     }
+
 }
